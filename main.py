@@ -1,57 +1,38 @@
-import torch
+import numpy as np
 import matplotlib.pyplot as plt
 
+def douady_rabbit(height, width, max_iterations):
+    y, x = np.ogrid[-1.5:1.5:height*1j, -2:1:width*1j]
+    c = -0.123 + 0.745j
+    z = x + y*1j
 
-def pythagoras_tree(depth, angle=torch.pi / 6):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    divtime = max_iterations + np.zeros(z.shape, dtype=int)
 
-    def generate_tree(x, y, length, angle, depth):
-        if depth == 0:
-            return torch.tensor([])
+    for i in range(max_iterations):
+        z = z**2 + c
+        diverge = z*np.conj(z) > 2**2
+        div_now = diverge & (divtime == max_iterations)
+        divtime[div_now] = i
+        z[diverge] = 2
 
-        # Calculate end point of the branch
-        x_end = x + length * torch.cos(angle)
-        y_end = y + length * torch.sin(angle)
+    return divtime
 
-        # Create current branch
-        branch = torch.tensor([[x, y, x_end.item(), y_end.item()]])
+def main():
+    height, width = 1000, 1500
+    max_iterations = 100
 
-        # Calculate new length and angles for sub-branches
-        new_length = length / (3 ** 0.5)  # Divide by sqrt(3) for 3 branches
-        angles = torch.tensor([-angle, 0, angle]) + angle
+    fractal = douady_rabbit(height, width, max_iterations)
 
-        # Recursively generate sub-branches
-        sub_branches = [generate_tree(x_end, y_end, new_length, angle + a, depth - 1) for a in angles]
+    plt.figure(figsize=(12, 8))
+    plt.imshow(fractal, cmap='hot', extent=[-2, 1, -1.5, 1.5])
+    plt.title("Douady Rabbit Fractal")
+    plt.xlabel("Re(c)")
+    plt.ylabel("Im(c)")
 
-        return torch.cat([branch] + sub_branches)
+    plt.colorbar(label='Iteration count')
+    plt.tight_layout()
+    plt.savefig('douady_rabbit.png', dpi=300, bbox_inches='tight')
+    plt.show()
 
-    # Initial setup
-    start_x = 0
-    start_y = 0
-    start_length = 1
-    start_angle = torch.tensor(torch.pi / 2)  # Start vertically
-
-    # Generate the tree
-    tree = generate_tree(start_x, start_y, start_length, start_angle, depth)
-
-    return tree.to(device)
-
-
-# Set the depth of the tree
-depth = 8
-
-# Generate the tree
-tree = pythagoras_tree(depth)
-
-# Plot the tree
-plt.figure(figsize=(10, 10))
-for branch in tree:
-    plt.plot(branch[:2], branch[2:], 'k-')
-plt.axis('equal')
-plt.axis('off')
-plt.title(f"3-Branched Pythagoras Tree (Depth: {depth})")
-plt.show()
-
-# Calculate and print log2(3)
-log2_3 = torch.log2(torch.tensor(3.0))
-print(f"log2(3) ≈ {log2_3.item():.4f}")
+if __name__ == "__main__":
+    main()
