@@ -14,7 +14,11 @@ def douady_rabbit_pytorch(height, width, max_iterations):
 
     for i in range(max_iterations):
         z = z**2 + c
+        # magic |
         diverge = torch.abs(z) > 2
+        # magic |
+
+        # REF: generated with the help from claude.
         div_now = diverge & (divtime == max_iterations)
         divtime[div_now] = i
         z[diverge] = 2
